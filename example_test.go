@@ -10,7 +10,7 @@ import (
 
 func Example() {
 	r := slash.NewMux()
-	r.Command("/weather", slash.Authorize(Weather, "secret"))
+	r.Command("/weather", "secrettoken", Weather)
 
 	s := slash.NewServer(r)
 	http.ListenAndServe(":8080", s)
