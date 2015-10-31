@@ -7,15 +7,22 @@ import (
 )
 
 var (
-	ErrNoHandler    = errors.New("slash: no handler")
+	// ErrNoHandler is returned by Mux ServeCommand if a Handler isn't found
+	// for the route.
+	ErrNoHandler = errors.New("slash: no handler")
+
+	// ErrUnauthorized is returned when the provided token in the request
+	// does not match the expected secret.
 	ErrUnauthorized = errors.New("slash: invalid token")
 )
 
-// Handler represents a Command handler.
+// Handler represents something that handles a slash command.
 type Handler interface {
 	// ServeCommand runs the command. The handler should return a string
-	// that will be sent back to the user.
-	ServeCommand(context.Context, Command) (text string, err error)
+	// that will be used as the reply to send back to the user, or an error.
+	// If an error is returned, then the string value is what will be sent
+	// to the user.
+	ServeCommand(context.Context, Command) (reply string, err error)
 }
 
 // HandlerFunc is a function that implements the Handler interface.
