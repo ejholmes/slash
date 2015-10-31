@@ -46,7 +46,12 @@ func ParseRequest(r *http.Request) (Command, error) {
 
 }
 
-// Matches returns the match groups from a regular expression match.
-func Matches(ctx context.Context) []string {
-	return []string{}
+// Params returns the match groups from a regular expression match.
+func Params(ctx context.Context) map[string]string {
+	params := make(map[string]string)
+	return params
+}
+
+func WithParams(ctx context.Context, params map[string]string) context.Context {
+	return ctx
 }

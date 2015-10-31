@@ -35,29 +35,29 @@ func (fn HandlerFunc) ServeCommand(ctx context.Context, command Command) (string
 
 // Matcher is something that can check if a Command matches a Route.
 type Matcher interface {
-	Match(Command) bool
+	Match(Command) (map[string]string, bool)
 }
 
 // MatcherFunc is a function that implements Matcher.
-type MatcherFunc func(Command) bool
+type MatcherFunc func(Command) (map[string]string, bool)
 
-func (fn MatcherFunc) Match(command Command) bool {
+func (fn MatcherFunc) Match(command Command) (map[string]string, bool) {
 	return fn(command)
 }
 
 // MatchCommand returns a Matcher that checks that the command strings match.
 func MatchCommand(cmd string) Matcher {
-	return MatcherFunc(func(command Command) bool {
-		return command.Command == cmd
+	return MatcherFunc(func(command Command) (map[string]string, bool) {
+		return make(map[string]string), command.Command == cmd
 	})
 }
 
 // MatchTextRegexp returns a Matcher that checks that the command text matches a
 // regular expression.
 func MatchTextRegexp(r *regexp.Regexp) Matcher {
-	return MatcherFunc(func(command Command) bool {
+	return MatcherFunc(func(command Command) (map[string]string, bool) {
 		matches := r.FindStringSubmatch(command.Text)
-		return len(matches) != 0
+		return make(map[string]string), len(matches) != 0
 	})
 }
 
@@ -114,23 +114,23 @@ func (m *Mux) addRoute(r *Route) *Route {
 
 // Handler returns the Handler that can handle the given slash command. If no
 // handler matches, nil is returned.
-func (m *Mux) Handler(command Command) Handler {
+func (m *Mux) Handler(command Command) (Handler, map[string]string) {
 	for _, r := range m.routes {
-		if ok := r.Match(command); ok {
-			return r.Handler
+		if params, ok := r.Match(command); ok {
+			return r.Handler, params
 		}
 	}
-	return nil
+	return nil, nil
 }
 
 // ServeCommand attempts to find a Handler to serve the Command. If no handler
 // is found, an error is returned.
 func (m *Mux) ServeCommand(ctx context.Context, command Command) (string, error) {
-	h := m.Handler(command)
+	h, params := m.Handler(command)
 	if h == nil {
 		return "", ErrNoHandler
 	}
-	return h.ServeCommand(ctx, command)
+	return h.ServeCommand(WithParams(ctx, params), command)
 }
 
 // ValidateToken returns a new Handler that verifies that the token in the

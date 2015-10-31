@@ -20,7 +20,7 @@ func Example() {
 func Weather(ctx context.Context, command slash.Command) (string, error) {
 	h := slash.NewMux()
 
-	var zipcodeRegex = regexp.MustCompile(`([0-9])`)
+	var zipcodeRegex = regexp.MustCompile(`(?P<zip>[0-9])`)
 	h.MatchText(zipcodeRegex, slash.HandlerFunc(Zipcode))
 
 	return h.ServeCommand(ctx, command)
@@ -28,6 +28,7 @@ func Weather(ctx context.Context, command slash.Command) (string, error) {
 
 // Zipcode is a slash handler that returns the weather for a zip code.
 func Zipcode(ctx context.Context, command slash.Command) (string, error) {
-	zip := slash.Matches(ctx)[0]
+	params := slash.Params(ctx)
+	zip := params["zip"]
 	return zip, nil
 }
