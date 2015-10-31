@@ -8,12 +8,13 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestMux_Found(t *testing.T) {
+func TestMux_Command_Found(t *testing.T) {
 	h := new(mockHandler)
 	m := NewMux()
-	m.Handle("/deploy", h)
+	m.Command("/deploy", "token", h)
 
 	cmd := Command{
+		Token:   "token",
 		Command: "/deploy",
 	}
 
@@ -24,7 +25,7 @@ func TestMux_Found(t *testing.T) {
 	assert.NoError(t, err)
 }
 
-func TestMux_NotFound(t *testing.T) {
+func TestMux_Command_NotFound(t *testing.T) {
 	m := NewMux()
 
 	cmd := Command{

@@ -3,6 +3,8 @@ package slash
 import (
 	"net/http"
 	"net/url"
+
+	"golang.org/x/net/context"
 )
 
 // Command represents an incoming Slash Command request.
@@ -42,4 +44,9 @@ func ParseRequest(r *http.Request) (Command, error) {
 	err := r.ParseForm()
 	return CommandFromValues(r.Form), err
 
+}
+
+// Matches returns the match groups from a regular expression match.
+func Matches(ctx context.Context) []string {
+	return []string{}
 }

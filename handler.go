@@ -2,6 +2,7 @@ package slash
 
 import (
 	"errors"
+	"regexp"
 
 	"golang.org/x/net/context"
 )
@@ -48,9 +49,15 @@ func NewMux() *Mux {
 //
 // Example
 //
-//	m.Handle("/deploy", DeployHandler)
-func (m *Mux) Handle(command string, handler Handler) {
-	m.routes[command] = handler
+//	m.Handle("/deploy", "token", DeployHandler)
+func (m *Mux) Command(command, token string, handler Handler) {
+	m.routes[command] = ValidateToken(handler, token)
+}
+
+// MatchText adds a route that matches when the text of the command matches the
+// given regular expression. If the route matches and is called, slash.Matches
+// will return the capture groups.
+func (m *Mux) MatchText(re *regexp.Regexp, handler Handler) {
 }
 
 // Handler returns the Handler that can handle the given slash command. If no
