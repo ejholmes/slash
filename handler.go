@@ -56,8 +56,20 @@ func MatchCommand(cmd string) Matcher {
 // regular expression.
 func MatchTextRegexp(r *regexp.Regexp) Matcher {
 	return MatcherFunc(func(command Command) (map[string]string, bool) {
+		params := make(map[string]string)
 		matches := r.FindStringSubmatch(command.Text)
-		return make(map[string]string), len(matches) != 0
+		if len(matches) == 0 {
+			return params, false
+		}
+
+		for i, m := range matches {
+			k := r.SubexpNames()[i]
+			if k != "" {
+				params[k] = m
+			}
+		}
+
+		return params, true
 	})
 }
 

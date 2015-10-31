@@ -74,3 +74,19 @@ func TestValidateToken(t *testing.T) {
 	assert.NoError(t, err)
 	h.AssertExpectations(t)
 }
+
+func TestMatchTextRegexp(t *testing.T) {
+	re := regexp.MustCompile(`(?P<repo>\S+?) to (?P<environment>\S+?)(!)?$`)
+	m := MatchTextRegexp(re)
+
+	_, ok := m.Match(Command{Text: "foo"})
+	assert.False(t, ok)
+
+	params, ok := m.Match(Command{Text: "acme-inc to staging"})
+	assert.True(t, ok)
+	assert.Equal(t, map[string]string{"repo": "acme-inc", "environment": "staging"}, params)
+
+	params, ok = m.Match(Command{Text: "acme-inc to staging!"})
+	assert.True(t, ok)
+	assert.Equal(t, map[string]string{"repo": "acme-inc", "environment": "staging"}, params)
+}
