@@ -33,16 +33,55 @@ func (fn HandlerFunc) ServeCommand(ctx context.Context, command Command) (string
 	return fn(ctx, command)
 }
 
+// Matcher is something that can check if a Command matches a Route.
+type Matcher interface {
+	Match(Command) bool
+}
+
+// MatcherFunc is a function that implements Matcher.
+type MatcherFunc func(Command) bool
+
+func (fn MatcherFunc) Match(command Command) bool {
+	return fn(command)
+}
+
+// MatchCommand returns a Matcher that checks that the command strings match.
+func MatchCommand(cmd string) Matcher {
+	return MatcherFunc(func(command Command) bool {
+		return command.Command == cmd
+	})
+}
+
+// MatchTextRegexp returns a Matcher that checks that the command text matches a
+// regular expression.
+func MatchTextRegexp(r *regexp.Regexp) Matcher {
+	return MatcherFunc(func(command Command) bool {
+		matches := r.FindStringSubmatch(command.Text)
+		return len(matches) != 0
+	})
+}
+
+// Route wraps a Handler with a Matcher.
+type Route struct {
+	Handler
+	Matcher
+}
+
+// NewRoute returns a new Route instance.
+func NewRoute(handler Handler) *Route {
+	return &Route{
+		Handler: handler,
+	}
+}
+
 // Mux is a Handler implementation that routes commands to Handlers.
 type Mux struct {
-	routes map[string]Handler
+	routes []*Route
 }
 
 // NewMux returns a new Mux instance.
 func NewMux() *Mux {
-	return &Mux{
-		routes: make(map[string]Handler),
-	}
+	return &Mux{}
 }
 
 // Handle adds a Handler to handle the given command.
@@ -50,24 +89,38 @@ func NewMux() *Mux {
 // Example
 //
 //	m.Handle("/deploy", "token", DeployHandler)
-func (m *Mux) Command(command, token string, handler Handler) {
-	m.routes[command] = ValidateToken(handler, token)
+func (m *Mux) Command(command, token string, handler Handler) *Route {
+	return m.Match(MatchCommand(command), ValidateToken(handler, token))
 }
 
 // MatchText adds a route that matches when the text of the command matches the
 // given regular expression. If the route matches and is called, slash.Matches
 // will return the capture groups.
-func (m *Mux) MatchText(re *regexp.Regexp, handler Handler) {
+func (m *Mux) MatchText(re *regexp.Regexp, handler Handler) *Route {
+	return m.Match(MatchTextRegexp(re), handler)
+}
+
+// Match adds a new route that uses the given Matcher to match.
+func (m *Mux) Match(matcher Matcher, handler Handler) *Route {
+	r := NewRoute(handler)
+	r.Matcher = matcher
+	return m.addRoute(r)
+}
+
+func (m *Mux) addRoute(r *Route) *Route {
+	m.routes = append(m.routes, r)
+	return r
 }
 
 // Handler returns the Handler that can handle the given slash command. If no
 // handler matches, nil is returned.
 func (m *Mux) Handler(command Command) Handler {
-	h, ok := m.routes[command.Command]
-	if !ok {
-		return nil
+	for _, r := range m.routes {
+		if ok := r.Match(command); ok {
+			return r.Handler
+		}
 	}
-	return h
+	return nil
 }
 
 // ServeCommand attempts to find a Handler to serve the Command. If no handler

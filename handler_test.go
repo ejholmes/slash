@@ -1,6 +1,7 @@
 package slash
 
 import (
+	"regexp"
 	"testing"
 
 	"golang.org/x/net/context"
@@ -23,6 +24,8 @@ func TestMux_Command_Found(t *testing.T) {
 
 	_, err := m.ServeCommand(ctx, cmd)
 	assert.NoError(t, err)
+
+	h.AssertExpectations(t)
 }
 
 func TestMux_Command_NotFound(t *testing.T) {
@@ -35,6 +38,24 @@ func TestMux_Command_NotFound(t *testing.T) {
 	ctx := context.Background()
 	_, err := m.ServeCommand(ctx, cmd)
 	assert.Equal(t, err, ErrNoHandler)
+}
+
+func TestMux_MatchText_Found(t *testing.T) {
+	h := new(mockHandler)
+	m := NewMux()
+	m.MatchText(regexp.MustCompile(`(?P<repo>\S+?) to (?P<environment>\S+?)$`), h)
+
+	cmd := Command{
+		Text: "acme-inc to staging",
+	}
+
+	ctx := context.Background()
+	h.On("ServeCommand", ctx, cmd).Return("", nil)
+
+	_, err := m.ServeCommand(ctx, cmd)
+	assert.NoError(t, err)
+
+	h.AssertExpectations(t)
 }
 
 func TestValidateToken(t *testing.T) {
