@@ -73,9 +73,9 @@ func (m *Mux) ServeCommand(ctx context.Context, command Command) (string, error)
 	return h.ServeCommand(ctx, command)
 }
 
-// Authorize returns a new Handler that verifies that the token in the request
-// matches the given token.
-func Authorize(h Handler, token string) Handler {
+// ValidateToken returns a new Handler that verifies that the token in the
+// request matches the given token.
+func ValidateToken(h Handler, token string) Handler {
 	return HandlerFunc(func(ctx context.Context, command Command) (string, error) {
 		if command.Token != token {
 			return "", ErrUnauthorized

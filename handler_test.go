@@ -36,9 +36,9 @@ func TestMux_NotFound(t *testing.T) {
 	assert.Equal(t, err, ErrNoHandler)
 }
 
-func TestMux_Authorize(t *testing.T) {
+func TestValidateToken(t *testing.T) {
 	h := new(mockHandler)
-	a := Authorize(h, "foo")
+	a := ValidateToken(h, "foo")
 
 	ctx := context.Background()
 	_, err := a.ServeCommand(ctx, Command{})
