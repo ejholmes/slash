@@ -20,7 +20,7 @@ func TestMux_Command_Found(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	h.On("ServeCommand", ctx, cmd).Return("", nil)
+	h.On("ServeCommand", WithParams(ctx, make(map[string]string)), cmd).Return("", nil)
 
 	_, err := m.ServeCommand(ctx, cmd)
 	assert.NoError(t, err)
@@ -50,7 +50,10 @@ func TestMux_MatchText_Found(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	h.On("ServeCommand", ctx, cmd).Return("", nil)
+	h.On("ServeCommand",
+		WithParams(ctx, map[string]string{"repo": "acme-inc", "environment": "staging"}),
+		cmd,
+	).Return("", nil)
 
 	_, err := m.ServeCommand(ctx, cmd)
 	assert.NoError(t, err)
