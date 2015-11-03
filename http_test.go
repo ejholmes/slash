@@ -13,7 +13,7 @@ import (
 	"github.com/stretchr/testify/mock"
 )
 
-func TestServer(t *testing.T) {
+func TestServer_Reply(t *testing.T) {
 	h := new(mockHandler)
 	s := &Server{
 		Handler: h,
@@ -25,10 +25,30 @@ func TestServer(t *testing.T) {
 	h.On("ServeCommand",
 		context.Background(),
 		mock.AnythingOfType("Command"),
-	).Return("ok", nil)
+	).Return(Reply("ok"), nil)
 
 	s.ServeHTTP(resp, req)
 	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, `{"text":"ok"}`+"\n", resp.Body.String())
+}
+
+func TestServer_Say(t *testing.T) {
+	h := new(mockHandler)
+	s := &Server{
+		Handler: h,
+	}
+
+	resp := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/", strings.NewReader(testForm))
+
+	h.On("ServeCommand",
+		context.Background(),
+		mock.AnythingOfType("Command"),
+	).Return(Say("ok"), nil)
+
+	s.ServeHTTP(resp, req)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, `{"response_type":"in_channel","text":"ok"}`+"\n", resp.Body.String())
 }
 
 func TestServer_Err(t *testing.T) {
@@ -44,7 +64,7 @@ func TestServer_Err(t *testing.T) {
 	h.On("ServeCommand",
 		context.Background(),
 		mock.AnythingOfType("Command"),
-	).Return("", errBoom)
+	).Return(Reply(""), errBoom)
 
 	s.ServeHTTP(resp, req)
 	assert.Equal(t, http.StatusBadRequest, resp.Code)

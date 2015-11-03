@@ -23,13 +23,13 @@ type Handler interface {
 	// that will be used as the reply to send back to the user, or an error.
 	// If an error is returned, then the string value is what will be sent
 	// to the user.
-	ServeCommand(context.Context, Command) (reply string, err error)
+	ServeCommand(context.Context, Command) (Response, error)
 }
 
 // HandlerFunc is a function that implements the Handler interface.
-type HandlerFunc func(context.Context, Command) (string, error)
+type HandlerFunc func(context.Context, Command) (Response, error)
 
-func (fn HandlerFunc) ServeCommand(ctx context.Context, command Command) (string, error) {
+func (fn HandlerFunc) ServeCommand(ctx context.Context, command Command) (Response, error) {
 	return fn(ctx, command)
 }
 
@@ -137,10 +137,10 @@ func (m *Mux) Handler(command Command) (Handler, map[string]string) {
 
 // ServeCommand attempts to find a Handler to serve the Command. If no handler
 // is found, an error is returned.
-func (m *Mux) ServeCommand(ctx context.Context, command Command) (string, error) {
+func (m *Mux) ServeCommand(ctx context.Context, command Command) (Response, error) {
 	h, params := m.Handler(command)
 	if h == nil {
-		return "", ErrNoHandler
+		return Response{}, ErrNoHandler
 	}
 	return h.ServeCommand(WithParams(ctx, params), command)
 }
@@ -148,9 +148,9 @@ func (m *Mux) ServeCommand(ctx context.Context, command Command) (string, error)
 // ValidateToken returns a new Handler that verifies that the token in the
 // request matches the given token.
 func ValidateToken(h Handler, token string) Handler {
-	return HandlerFunc(func(ctx context.Context, command Command) (string, error) {
+	return HandlerFunc(func(ctx context.Context, command Command) (Response, error) {
 		if command.Token != token {
-			return "", ErrUnauthorized
+			return Response{}, ErrUnauthorized
 		}
 		return h.ServeCommand(ctx, command)
 	})

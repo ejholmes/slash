@@ -20,7 +20,10 @@ func TestMux_Command_Found(t *testing.T) {
 	}
 
 	ctx := context.Background()
-	h.On("ServeCommand", WithParams(ctx, make(map[string]string)), cmd).Return("", nil)
+	h.On("ServeCommand",
+		WithParams(ctx, make(map[string]string)),
+		cmd,
+	).Return(Reply(""), nil)
 
 	_, err := m.ServeCommand(ctx, cmd)
 	assert.NoError(t, err)
@@ -53,7 +56,7 @@ func TestMux_MatchText_Found(t *testing.T) {
 	h.On("ServeCommand",
 		WithParams(ctx, map[string]string{"repo": "acme-inc", "environment": "staging"}),
 		cmd,
-	).Return("", nil)
+	).Return(Reply(""), nil)
 
 	_, err := m.ServeCommand(ctx, cmd)
 	assert.NoError(t, err)
@@ -72,7 +75,7 @@ func TestValidateToken(t *testing.T) {
 	cmd := Command{
 		Token: "foo",
 	}
-	h.On("ServeCommand", ctx, cmd).Return("", nil)
+	h.On("ServeCommand", ctx, cmd).Return(Reply(""), nil)
 	_, err = a.ServeCommand(ctx, cmd)
 	assert.NoError(t, err)
 	h.AssertExpectations(t)
