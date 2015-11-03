@@ -26,6 +26,29 @@ type Command struct {
 	ResponseURL *url.URL
 }
 
+// Response represents the response to send back to the user.
+type Response struct {
+	InChannel bool
+	Text      string
+}
+
+// Reply returns a Response object that will reply to the user silently with an
+// "ephmeral" message.
+func Reply(text string) Response {
+	return Response{
+		InChannel: false,
+		Text:      text,
+	}
+}
+
+// Say returns a Response object that will post to the channel publicly.
+func Say(text string) Response {
+	return Response{
+		InChannel: true,
+		Text:      text,
+	}
+}
+
 // CommandFromValues returns a Command object from a url.Values object.
 func CommandFromValues(v url.Values) (Command, error) {
 	u, err := url.Parse(v.Get("response_url"))

@@ -1,7 +1,13 @@
 package slash
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
+	"net/http"
+	"net/url"
 	"regexp"
 
 	"golang.org/x/net/context"
@@ -17,20 +23,67 @@ var (
 	ErrUnauthorized = errors.New("slash: invalid token")
 )
 
+// Responder represents an object that can send Responses.
+type Responder interface {
+	Respond(Response) error
+}
+
+// responder is an implementation of the Responder interface that POST's the
+// response to the given url.
+type responder struct {
+	responseURL *url.URL
+	client      *http.Client
+}
+
+func newResponder(command Command) *responder {
+	return &responder{
+		responseURL: command.ResponseURL,
+		client:      http.DefaultClient,
+	}
+}
+
+func (r *responder) Respond(resp Response) error {
+	raw, err := json.Marshal(newResponse(resp))
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", r.responseURL.String(), bytes.NewReader(raw))
+	if err != nil {
+		return err
+	}
+
+	hresp, err := r.client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if hresp.StatusCode/100 != 2 {
+		raw, _ := ioutil.ReadAll(hresp.Body)
+		return fmt.Errorf("unknown response: %v: %s", hresp.StatusCode, raw)
+	}
+
+	return err
+}
+
 // Handler represents something that handles a slash command.
 type Handler interface {
-	// ServeCommand runs the command. The handler should return a string
-	// that will be used as the reply to send back to the user, or an error.
-	// If an error is returned, then the string value is what will be sent
-	// to the user.
-	ServeCommand(context.Context, Command) (reply string, err error)
+	// ServeCommand runs the command. The handler should return a Response
+	// that will be used as the initial reply to send back to the user, or
+	// an error.  If an error is returned, then the string value is what
+	// will be sent to the user.
+	//
+	// That provided Responder can be used to send asynchronous responses
+	// after the initial response, up to 30 minutes after the command was
+	// invoked.
+	ServeCommand(context.Context, Responder, Command) (Response, error)
 }
 
 // HandlerFunc is a function that implements the Handler interface.
-type HandlerFunc func(context.Context, Command) (string, error)
+type HandlerFunc func(context.Context, Responder, Command) (Response, error)
 
-func (fn HandlerFunc) ServeCommand(ctx context.Context, command Command) (string, error) {
-	return fn(ctx, command)
+func (fn HandlerFunc) ServeCommand(ctx context.Context, r Responder, command Command) (Response, error) {
+	return fn(ctx, r, command)
 }
 
 // Matcher is something that can check if a Command matches a Route.
@@ -137,21 +190,21 @@ func (m *Mux) Handler(command Command) (Handler, map[string]string) {
 
 // ServeCommand attempts to find a Handler to serve the Command. If no handler
 // is found, an error is returned.
-func (m *Mux) ServeCommand(ctx context.Context, command Command) (string, error) {
+func (m *Mux) ServeCommand(ctx context.Context, r Responder, command Command) (Response, error) {
 	h, params := m.Handler(command)
 	if h == nil {
-		return "", ErrNoHandler
+		return Response{}, ErrNoHandler
 	}
-	return h.ServeCommand(WithParams(ctx, params), command)
+	return h.ServeCommand(WithParams(ctx, params), r, command)
 }
 
 // ValidateToken returns a new Handler that verifies that the token in the
 // request matches the given token.
 func ValidateToken(h Handler, token string) Handler {
-	return HandlerFunc(func(ctx context.Context, command Command) (string, error) {
+	return HandlerFunc(func(ctx context.Context, r Responder, command Command) (Response, error) {
 		if command.Token != token {
-			return "", ErrUnauthorized
+			return Response{}, ErrUnauthorized
 		}
-		return h.ServeCommand(ctx, command)
+		return h.ServeCommand(ctx, r, command)
 	})
 }
