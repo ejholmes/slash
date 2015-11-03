@@ -81,7 +81,7 @@ func TestValidateToken(t *testing.T) {
 
 	ctx := context.Background()
 	_, err := a.ServeCommand(ctx, r, Command{})
-	assert.Equal(t, ErrUnauthorized, err)
+	assert.Equal(t, ErrInvalidToken, err)
 
 	cmd := Command{
 		Token: "foo",
@@ -99,7 +99,7 @@ func TestValidateToken_Empty(t *testing.T) {
 
 	ctx := context.Background()
 	_, err := a.ServeCommand(ctx, r, Command{})
-	assert.Equal(t, ErrUnauthorized, err)
+	assert.Equal(t, ErrInvalidToken, err)
 }
 
 func TestMatchTextRegexp(t *testing.T) {

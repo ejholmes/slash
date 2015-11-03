@@ -18,9 +18,9 @@ var (
 	// for the route.
 	ErrNoHandler = errors.New("slash: no handler")
 
-	// ErrUnauthorized is returned when the provided token in the request
+	// ErrInvalidToken is returned when the provided token in the request
 	// does not match the expected secret.
-	ErrUnauthorized = errors.New("slash: invalid token")
+	ErrInvalidToken = errors.New("slash: invalid token")
 )
 
 // Responder represents an object that can send Responses.
@@ -167,11 +167,11 @@ func ValidateToken(h Handler, token string) Handler {
 		// If an empty string was provided, this was probably a
 		// configuration error, so return unauthorized for safety.
 		if token == "" {
-			return NoResponse, ErrUnauthorized
+			return NoResponse, ErrInvalidToken
 		}
 
 		if command.Token != token {
-			return NoResponse, ErrUnauthorized
+			return NoResponse, ErrInvalidToken
 		}
 		return h.ServeCommand(ctx, r, command)
 	})
