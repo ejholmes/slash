@@ -92,6 +92,16 @@ func TestValidateToken(t *testing.T) {
 	h.AssertExpectations(t)
 }
 
+func TestValidateToken_Empty(t *testing.T) {
+	r := new(mockResponder)
+	h := new(mockHandler)
+	a := ValidateToken(h, "")
+
+	ctx := context.Background()
+	_, err := a.ServeCommand(ctx, r, Command{})
+	assert.Equal(t, ErrUnauthorized, err)
+}
+
 func TestMatchTextRegexp(t *testing.T) {
 	re := regexp.MustCompile(`(?P<repo>\S+?) to (?P<environment>\S+?)(!)?$`)
 	m := MatchTextRegexp(re)

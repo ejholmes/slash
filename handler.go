@@ -202,6 +202,12 @@ func (m *Mux) ServeCommand(ctx context.Context, r Responder, command Command) (R
 // request matches the given token.
 func ValidateToken(h Handler, token string) Handler {
 	return HandlerFunc(func(ctx context.Context, r Responder, command Command) (Response, error) {
+		// If an empty string was provided, this was probably a
+		// configuration error, so return unauthorized for safety.
+		if token == "" {
+			return NoResponse, ErrUnauthorized
+		}
+
 		if command.Token != token {
 			return NoResponse, ErrUnauthorized
 		}
