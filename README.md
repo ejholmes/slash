@@ -1,4 +1,4 @@
-# Slash
+# Slash [![Build Status](https://travis-ci.org/ejholmes/slash.svg?branch=master)](https://travis-ci.org/ejholmes/slash)
 
 A framework for Slack slash commands with Go, inspired by [net/http](https://golang.org/pkg/net/http/) and [hubot](https://github.com/github/hubot).
 
