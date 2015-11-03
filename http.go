@@ -28,7 +28,8 @@ func (h *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.ServeCommand(context.Background(), command)
+	responder := newResponder(command)
+	resp, err := h.ServeCommand(context.Background(), responder, command)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return

@@ -66,7 +66,16 @@ type mockHandler struct {
 	mock.Mock
 }
 
-func (h *mockHandler) ServeCommand(ctx context.Context, command Command) (Response, error) {
-	args := h.Called(ctx, command)
+func (h *mockHandler) ServeCommand(ctx context.Context, r Responder, command Command) (Response, error) {
+	args := h.Called(ctx, r, command)
 	return args.Get(0).(Response), args.Error(1)
+}
+
+type mockResponder struct {
+	mock.Mock
+}
+
+func (r *mockResponder) Respond(resp Response) error {
+	args := r.Called(resp)
+	return args.Error(0)
 }
