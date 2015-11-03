@@ -28,44 +28,6 @@ type Responder interface {
 	Respond(Response) error
 }
 
-// responder is an implementation of the Responder interface that POST's the
-// response to the given url.
-type responder struct {
-	responseURL *url.URL
-	client      *http.Client
-}
-
-func newResponder(command Command) *responder {
-	return &responder{
-		responseURL: command.ResponseURL,
-		client:      http.DefaultClient,
-	}
-}
-
-func (r *responder) Respond(resp Response) error {
-	raw, err := json.Marshal(newResponse(resp))
-	if err != nil {
-		return err
-	}
-
-	req, err := http.NewRequest("POST", r.responseURL.String(), bytes.NewReader(raw))
-	if err != nil {
-		return err
-	}
-
-	hresp, err := r.client.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if hresp.StatusCode/100 != 2 {
-		raw, _ := ioutil.ReadAll(hresp.Body)
-		return fmt.Errorf("unknown response: %v: %s", hresp.StatusCode, raw)
-	}
-
-	return err
-}
-
 // Handler represents something that handles a slash command.
 type Handler interface {
 	// ServeCommand runs the command. The handler should return a Response
@@ -213,4 +175,42 @@ func ValidateToken(h Handler, token string) Handler {
 		}
 		return h.ServeCommand(ctx, r, command)
 	})
+}
+
+// responder is an implementation of the Responder interface that POST's the
+// response to the given url.
+type responder struct {
+	responseURL *url.URL
+	client      *http.Client
+}
+
+func newResponder(command Command) *responder {
+	return &responder{
+		responseURL: command.ResponseURL,
+		client:      http.DefaultClient,
+	}
+}
+
+func (r *responder) Respond(resp Response) error {
+	raw, err := json.Marshal(newResponse(resp))
+	if err != nil {
+		return err
+	}
+
+	req, err := http.NewRequest("POST", r.responseURL.String(), bytes.NewReader(raw))
+	if err != nil {
+		return err
+	}
+
+	hresp, err := r.client.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if hresp.StatusCode/100 != 2 {
+		raw, _ := ioutil.ReadAll(hresp.Body)
+		return fmt.Errorf("unknown response: %v: %s", hresp.StatusCode, raw)
+	}
+
+	return err
 }
