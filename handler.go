@@ -193,7 +193,7 @@ func (m *Mux) Handler(command Command) (Handler, map[string]string) {
 func (m *Mux) ServeCommand(ctx context.Context, r Responder, command Command) (Response, error) {
 	h, params := m.Handler(command)
 	if h == nil {
-		return Response{}, ErrNoHandler
+		return NoResponse, ErrNoHandler
 	}
 	return h.ServeCommand(WithParams(ctx, params), r, command)
 }
@@ -203,7 +203,7 @@ func (m *Mux) ServeCommand(ctx context.Context, r Responder, command Command) (R
 func ValidateToken(h Handler, token string) Handler {
 	return HandlerFunc(func(ctx context.Context, r Responder, command Command) (Response, error) {
 		if command.Token != token {
-			return Response{}, ErrUnauthorized
+			return NoResponse, ErrUnauthorized
 		}
 		return h.ServeCommand(ctx, r, command)
 	})

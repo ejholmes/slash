@@ -46,7 +46,7 @@ func TestServer_Say(t *testing.T) {
 
 func TestServer_Err(t *testing.T) {
 	h := HandlerFunc(func(ctx context.Context, r Responder, command Command) (Response, error) {
-		return Response{}, errors.New("boom")
+		return NoResponse, errors.New("boom")
 	})
 	s := &Server{
 		Handler: h,

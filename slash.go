@@ -32,6 +32,9 @@ type Response struct {
 	Text      string
 }
 
+// An empty response.
+var NoResponse = Response{}
+
 // Reply returns a Response object that will reply to the user silently with an
 // "ephmeral" message.
 func Reply(text string) Response {
