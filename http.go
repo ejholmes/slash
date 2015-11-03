@@ -2,7 +2,9 @@ package slash
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
+	"sync"
 
 	"golang.org/x/net/context"
 )
@@ -28,13 +30,55 @@ func (h *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	resp, err := h.ServeCommand(context.Background(), command)
-	if err != nil {
+	responder := newResponder(command)
+	if err := h.ServeCommand(context.Background(), responder, command); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	json.NewEncoder(w).Encode(newResponse(resp))
+	// Make future responses async.
+	responder.async = true
+	if resp := responder.reply; resp != nil {
+		// If Respond was called before ServeCommand returned, this will
+		// be used as the first response.
+		json.NewEncoder(w).Encode(newResponse(*resp))
+	}
+}
+
+// responder implements the Responder interface. It will hold a single Response
+// object in memory while async is false. When async is set to true, it will
+// fallback to the asyncResponder.
+type responder struct {
+	sync.Mutex
+	async bool
+	reply *Response
+
+	// asyncResponder is the responder to use to send asynchronous
+	// responses.
+	asyncResponder Responder
+}
+
+func newResponder(command Command) *responder {
+	return &responder{
+		asyncResponder: NewAsyncResponder(command),
+	}
+}
+
+func (r *responder) Respond(resp Response) error {
+	r.Lock()
+	defer r.Unlock()
+
+	if r.async {
+		return r.asyncResponder.Respond(resp)
+	}
+
+	if r.reply != nil {
+		return errors.New("You can only reply once")
+	}
+
+	r.reply = &resp
+
+	return nil
 }
 
 type response struct {

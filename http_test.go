@@ -10,22 +10,19 @@ import (
 	"golang.org/x/net/context"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestServer_Reply(t *testing.T) {
-	h := new(mockHandler)
+	h := HandlerFunc(func(ctx context.Context, r Responder, command Command) error {
+		r.Respond(Reply("ok"))
+		return nil
+	})
 	s := &Server{
 		Handler: h,
 	}
 
 	resp := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/", strings.NewReader(testForm))
-
-	h.On("ServeCommand",
-		context.Background(),
-		mock.AnythingOfType("Command"),
-	).Return(Reply("ok"), nil)
 
 	s.ServeHTTP(resp, req)
 	assert.Equal(t, http.StatusOK, resp.Code)
@@ -33,18 +30,16 @@ func TestServer_Reply(t *testing.T) {
 }
 
 func TestServer_Say(t *testing.T) {
-	h := new(mockHandler)
+	h := HandlerFunc(func(ctx context.Context, r Responder, command Command) error {
+		r.Respond(Say("ok"))
+		return nil
+	})
 	s := &Server{
 		Handler: h,
 	}
 
 	resp := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/", strings.NewReader(testForm))
-
-	h.On("ServeCommand",
-		context.Background(),
-		mock.AnythingOfType("Command"),
-	).Return(Say("ok"), nil)
 
 	s.ServeHTTP(resp, req)
 	assert.Equal(t, http.StatusOK, resp.Code)
@@ -52,7 +47,9 @@ func TestServer_Say(t *testing.T) {
 }
 
 func TestServer_Err(t *testing.T) {
-	h := new(mockHandler)
+	h := HandlerFunc(func(ctx context.Context, r Responder, command Command) error {
+		return errors.New("boom")
+	})
 	s := &Server{
 		Handler: h,
 	}
@@ -60,12 +57,23 @@ func TestServer_Err(t *testing.T) {
 	resp := httptest.NewRecorder()
 	req, _ := http.NewRequest("POST", "/", strings.NewReader(testForm))
 
-	errBoom := errors.New("boom")
-	h.On("ServeCommand",
-		context.Background(),
-		mock.AnythingOfType("Command"),
-	).Return(Reply(""), errBoom)
-
 	s.ServeHTTP(resp, req)
 	assert.Equal(t, http.StatusBadRequest, resp.Code)
+}
+
+func TestServer_Async(t *testing.T) {
+	h := HandlerFunc(func(ctx context.Context, r Responder, command Command) error {
+		r.Respond(Reply("ok"))
+		return nil
+	})
+	s := &Server{
+		Handler: h,
+	}
+
+	resp := httptest.NewRecorder()
+	req, _ := http.NewRequest("POST", "/", strings.NewReader(testForm))
+
+	s.ServeHTTP(resp, req)
+	assert.Equal(t, http.StatusOK, resp.Code)
+	assert.Equal(t, `{"text":"ok"}`+"\n", resp.Body.String())
 }

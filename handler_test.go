@@ -19,13 +19,15 @@ func TestMux_Command_Found(t *testing.T) {
 		Command: "/deploy",
 	}
 
+	resp := new(mockResponder)
 	ctx := context.Background()
 	h.On("ServeCommand",
 		WithParams(ctx, make(map[string]string)),
+		resp,
 		cmd,
-	).Return(Reply(""), nil)
+	).Return(nil)
 
-	_, err := m.ServeCommand(ctx, cmd)
+	err := m.ServeCommand(ctx, resp, cmd)
 	assert.NoError(t, err)
 
 	h.AssertExpectations(t)
@@ -38,8 +40,9 @@ func TestMux_Command_NotFound(t *testing.T) {
 		Command: "/deploy",
 	}
 
+	resp := new(mockResponder)
 	ctx := context.Background()
-	_, err := m.ServeCommand(ctx, cmd)
+	err := m.ServeCommand(ctx, resp, cmd)
 	assert.Equal(t, err, ErrNoHandler)
 }
 
@@ -52,13 +55,15 @@ func TestMux_MatchText_Found(t *testing.T) {
 		Text: "acme-inc to staging",
 	}
 
+	resp := new(mockResponder)
 	ctx := context.Background()
 	h.On("ServeCommand",
 		WithParams(ctx, map[string]string{"repo": "acme-inc", "environment": "staging"}),
+		resp,
 		cmd,
-	).Return(Reply(""), nil)
+	).Return(nil)
 
-	_, err := m.ServeCommand(ctx, cmd)
+	err := m.ServeCommand(ctx, resp, cmd)
 	assert.NoError(t, err)
 
 	h.AssertExpectations(t)
@@ -68,15 +73,16 @@ func TestValidateToken(t *testing.T) {
 	h := new(mockHandler)
 	a := ValidateToken(h, "foo")
 
+	resp := new(mockResponder)
 	ctx := context.Background()
-	_, err := a.ServeCommand(ctx, Command{})
+	err := a.ServeCommand(ctx, resp, Command{})
 	assert.Equal(t, ErrUnauthorized, err)
 
 	cmd := Command{
 		Token: "foo",
 	}
-	h.On("ServeCommand", ctx, cmd).Return(Reply(""), nil)
-	_, err = a.ServeCommand(ctx, cmd)
+	h.On("ServeCommand", ctx, resp, cmd).Return(nil)
+	err = a.ServeCommand(ctx, resp, cmd)
 	assert.NoError(t, err)
 	h.AssertExpectations(t)
 }
