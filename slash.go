@@ -22,10 +22,17 @@ type Command struct {
 
 	Command string
 	Text    string
+
+	ResponseURL *url.URL
 }
 
 // CommandFromValues returns a Command object from a url.Values object.
-func CommandFromValues(v url.Values) Command {
+func CommandFromValues(v url.Values) (Command, error) {
+	u, err := url.Parse(v.Get("response_url"))
+	if err != nil {
+		return Command{}, err
+	}
+
 	return Command{
 		Token:       v.Get("token"),
 		TeamID:      v.Get("team_id"),
@@ -36,13 +43,17 @@ func CommandFromValues(v url.Values) Command {
 		UserName:    v.Get("user_name"),
 		Command:     v.Get("command"),
 		Text:        v.Get("text"),
-	}
+		ResponseURL: u,
+	}, nil
 }
 
 // ParseRequest parses the form an then returns the extracted Command.
 func ParseRequest(r *http.Request) (Command, error) {
 	err := r.ParseForm()
-	return CommandFromValues(r.Form), err
+	if err != nil {
+		return Command{}, err
+	}
+	return CommandFromValues(r.Form)
 
 }
 
