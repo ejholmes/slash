@@ -118,6 +118,22 @@ func TestMatchTextRegexp(t *testing.T) {
 	assert.Equal(t, map[string]string{"repo": "acme-inc", "environment": "staging"}, params)
 }
 
+func TestMatchSubcommand(t *testing.T) {
+	m := MatchSubcommand("help")
+
+	_, ok := m.Match(Command{Text: "foo"})
+	assert.False(t, ok)
+
+	_, ok = m.Match(Command{Text: "foo help"})
+	assert.False(t, ok)
+
+	_, ok = m.Match(Command{Text: "help"})
+	assert.True(t, ok)
+
+	_, ok = m.Match(Command{Text: "help with something"})
+	assert.True(t, ok)
+}
+
 func TestResponder(t *testing.T) {
 	var called bool
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

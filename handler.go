@@ -67,6 +67,13 @@ func MatchCommand(cmd string) Matcher {
 	})
 }
 
+// MatchSubcommand returns a Matcher that checks for the first string of the
+// text portion of a command, assuming it's a subcommand.
+func MatchSubcommand(subcmd string) Matcher {
+	re := regexp.MustCompile(fmt.Sprintf("^%s.*$", subcmd))
+	return MatchTextRegexp(re)
+}
+
 // MatchTextRegexp returns a Matcher that checks that the command text matches a
 // regular expression.
 func MatchTextRegexp(r *regexp.Regexp) Matcher {
