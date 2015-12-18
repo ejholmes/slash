@@ -13,13 +13,18 @@ import (
 // return an error if you try to send more than 5 responses.
 type ResponseRecorder struct {
 	Responses <-chan slash.Response
+
+	// internal channel to send on.
+	ch chan slash.Response
 }
 
 // NewRecorder returns a new ResponseRecorder with the Responses channel set to
 // a buffered channel allowing 5 responses.
 func NewRecorder() *ResponseRecorder {
+	ch := make(chan slash.Response, slash.MaximumDelayedResponses)
 	return &ResponseRecorder{
-		Responses: make(chan slash.Response, slash.MaximumDelayedResponses),
+		Responses: ch,
+		ch:        ch,
 	}
 }
 
@@ -27,9 +32,9 @@ func NewRecorder() *ResponseRecorder {
 // blocked, it returns an error.
 func (r *ResponseRecorder) Respond(resp slash.Response) error {
 	select {
-	case r.Responses <- resp:
+	case r.ch <- resp:
 		return nil
 	default:
-		return fmt.Errorf("you can send a maximum of %d delayed responses", cap(r.Responses))
+		return fmt.Errorf("you can send a maximum of %d delayed responses", cap(r.ch))
 	}
 }
