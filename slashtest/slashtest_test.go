@@ -20,7 +20,7 @@ func TestResponseServer(t *testing.T) {
 	}))
 
 	// Responses from the above handler will be posted here.
-	r, s := NewServer()
+	s := NewServer()
 	defer s.Close()
 
 	req, _ := http.NewRequest("POST", "/", strings.NewReader(fmt.Sprintf("response_url=%s", s.URL)))
@@ -31,7 +31,7 @@ func TestResponseServer(t *testing.T) {
 	assert.Equal(t, http.StatusOK, resp.Code)
 
 	select {
-	case resp := <-r.Responses:
+	case resp := <-s.Responses():
 		assert.Equal(t, "Hey", resp.Text)
 	case <-time.After(time.Second):
 		t.Fatal("timeout")

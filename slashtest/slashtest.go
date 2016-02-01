@@ -31,13 +31,6 @@ func NewRecorder() *ResponseRecorder {
 	}
 }
 
-// NewServer returns an httptest.Server that uses a ResponseRecorder as the
-// http.Handler
-func NewServer() (*ResponseRecorder, *httptest.Server) {
-	r := NewRecorder()
-	return r, httptest.NewServer(r)
-}
-
 // Respond sends the response on the Responses channel. If the channel is
 // blocked, it returns an error.
 func (r *ResponseRecorder) Respond(resp slash.Response) error {
@@ -65,4 +58,27 @@ func (r *ResponseRecorder) add(resp slash.Response) error {
 	default:
 		return fmt.Errorf("you can send a maximum of %d delayed responses", cap(r.ch))
 	}
+}
+
+// Server provides an http server that can handle slash.Responses posted to the
+// response_url.
+type Server struct {
+	*httptest.Server
+	r *ResponseRecorder
+}
+
+// NewServer returns an httptest.Server that uses a ResponseRecorder as the
+// http.Handler
+func NewServer() *Server {
+	r := NewRecorder()
+	s := httptest.NewServer(r)
+	return &Server{
+		Server: s,
+		r:      r,
+	}
+}
+
+// Responses returns a channel that the responses are sent on.
+func (s *Server) Responses() <-chan slash.Response {
+	return s.r.Responses
 }
