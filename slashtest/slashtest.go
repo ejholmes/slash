@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"net/url"
+	"strings"
 
 	"github.com/ejholmes/slash"
 )
@@ -61,10 +63,12 @@ func (r *ResponseRecorder) add(resp slash.Response) error {
 }
 
 // Server provides an http server that can handle slash.Responses posted to the
-// response_url.
+// response_url. It's simply a combination of an httptest.Server and a
+// ResponseRecorder. You should dispose of it when you're done by calling the
+// Close method.
 type Server struct {
 	*httptest.Server
-	r *ResponseRecorder
+	*ResponseRecorder
 }
 
 // NewServer returns an httptest.Server that uses a ResponseRecorder as the
@@ -73,12 +77,30 @@ func NewServer() *Server {
 	r := NewRecorder()
 	s := httptest.NewServer(r)
 	return &Server{
-		Server: s,
-		r:      r,
+		Server:           s,
+		ResponseRecorder: r,
 	}
 }
 
-// Responses returns a channel that the responses are sent on.
-func (s *Server) Responses() <-chan slash.Response {
-	return s.r.Responses
+// NewCommand returns a new slash.Command with the ResponseURL attribute set so
+// that handlers will post to this server.
+func (s *Server) NewCommand() slash.Command {
+	u, err := url.Parse(s.URL)
+	if err != nil {
+		// Should never happen
+		panic(err)
+	}
+	return slash.Command{ResponseURL: u}
+}
+
+// NewRequest is a small helper that returns an http.Request suitable to POST to
+// a slash.Server.
+func NewRequest(method, path string, cmd slash.Command) (*http.Request, error) {
+	v := slash.ValuesFromCommand(cmd)
+	req, err := http.NewRequest(method, path, strings.NewReader(v.Encode()))
+	if err != nil {
+		return req, err
+	}
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	return req, nil
 }
